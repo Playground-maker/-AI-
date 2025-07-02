@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 업무 도구 모음</title>
+    <?!= include('style'); ?>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo">
+            <h1>🚀 AI 업무 도구</h1>
+            <p>생산성을 높이는 스마트한 AI 솔루션</p>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="welcome-section">
+            <h2>어떤 도구를 사용하시겠어요?</h2>
+            <p>AI 기반의 업무 도구들로 더 효율적으로 일하세요</p>
+        </div>
+
+        <div class="tools-grid">
+            <div class="tool-card" id="timelineCard">
+                <div class="tool-icon">📋</div>
+                <div class="tool-content">
+                    <h3>프로젝트 일정 관리</h3>
+                    <p>AI가 프로젝트 정보를 분석하여 최적의 타임라인을 자동으로 생성해드립니다.</p>
+                    <div class="tool-features">
+                        <span class="feature-tag">일정 자동 생성</span>
+                        <span class="feature-tag">위험 요소 분석</span>
+                        <span class="feature-tag">팀 규모 최적화</span>
+                    </div>
+                </div>
+                <button class="tool-btn" onclick="openTimeline()">
+                    시작하기 →
+                </button>
+            </div>
+
+            <div class="tool-card" id="feature2Card">
+                <div class="tool-icon">👥</div>
+                <div class="tool-content">
+                    <h3>고객 페르소나 & 인터뷰 설계</h3>
+                    <p>프로젝트 정보를 입력하면 AI가 타겟 고객 페르소나를 추천하고, 고객 인터뷰를 위한 맞춤형 질문까지 자동 생성해드립니다.</p>
+                    <div class="tool-features">
+                        <span class="feature-tag">페르소나 생성</span>
+                        <span class="feature-tag">인터뷰 문항</span>
+                        <span class="feature-tag">고객 분석</span>
+                    </div>
+                </div>
+                <button class="tool-btn" onclick="openFeature2()">
+                    시작하기 →
+                </button>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="info-card">
+                <h4>💡 사용 팁</h4>
+                <ul>
+                    <li>각 도구는 AI 기반으로 동작하여 정확하고 빠른 결과를 제공합니다</li>
+                    <li>프로젝트 정보를 상세히 입력할수록 더 정확한 결과를 얻을 수 있습니다</li>
+                    <li>생성된 페르소나와 인터뷰 문항은 실제 고객 조사에 바로 활용 가능합니다</li>
+                    <li>생성된 결과는 복사하여 다른 문서에서 활용할 수 있습니다</li>
+                </ul>
+            </div>
+
+            <div class="info-card">
+                <h4>🔧 주요 기능</h4>
+                <ul>
+                    <li><strong>프로젝트 일정 관리:</strong> AI 기반 타임라인 자동 생성</li>
+                    <li><strong>페르소나 설계:</strong> 타겟 고객 프로필 추천</li>
+                    <li><strong>인터뷰 설계:</strong> 고객 인터뷰 질문 자동 생성</li>
+                    <li><strong>반응형 디자인:</strong> 모든 기기에서 최적화된 경험</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>© 2024 AI 업무 도구 모음 | Powered by Potens.AI</p>
+    </div>
+</div>
+
+<?!= include('js'); ?>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로젝트 일정 관리</title>
+    <?!= include('style'); ?>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🎯 프로젝트 일정 관리</h1>
+        <p>AI가 추천하는 스마트한 프로젝트 타임라인</p>
+    </div>
+
+    <div class="content">
+        <form id="projectForm">
+            <div class="form-group">
+                <label for="projectName">프로젝트명</label>
+                <input type="text" id="projectName" name="projectName" placeholder="예: 사내 업무관리 시스템 개발" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="projectType">프로젝트 유형</label>
+                    <select id="projectType" name="projectType" required>
+                        <option value="">선택하세요</option>
+                        <option value="웹 개발">웹 개발</option>
+                        <option value="모바일 앱 개발">모바일 앱 개발</option>
+                        <option value="시스템 구축">시스템 구축</option>
+                        <option value="마케팅 캠페인">마케팅 캠페인</option>
+                        <option value="제품 출시">제품 출시</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="duration">예상 기간 (주)</label>
+                    <input type="number" id="duration" name="duration" placeholder="예: 12" min="1" max="52" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="teamSize">팀 규모</label>
+                    <select id="teamSize" name="teamSize" required>
+                        <option value="">선택하세요</option>
+                        <option value="1-3명">1-3명 (소규모)</option>
+                        <option value="4-7명">4-7명 (중규모)</option>
+                        <option value="8-15명">8-15명 (대규모)</option>
+                        <option value="16명 이상">16명 이상 (초대규모)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="priority">우선순위</label>
+                    <select id="priority" name="priority" required>
+                        <option value="">선택하세요</option>
+                        <option value="높음">높음 (긴급)</option>
+                        <option value="보통">보통 (일반)</option>
+                        <option value="낮음">낮음 (여유)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="requirements">주요 요구사항 및 기능</label>
+                <textarea id="requirements" name="requirements" placeholder="예: 사용자 로그인, 업무 등록 및 관리, 알림 기능, 보고서 생성, 모바일 반응형 등" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="constraints">제약사항 및 특이사항</label>
+                <textarea id="constraints" name="constraints" placeholder="예: 기존 시스템과 연동 필요, 특정 기술 스택 사용, 예산 제한, 법적 규제 준수 등"></textarea>
+            </div>
+
+            <button type="submit" class="btn-primary" id="generateBtn">
+                🚀 AI 일정 생성하기
+            </button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <p>AI가 최적의 프로젝트 일정을 생성하고 있습니다...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="result" id="result">
+            <h3>📋 추천 프로젝트 타임라인</h3>
+            <div class="timeline" id="timeline"></div>
+        </div>
+    </div>
+</div>
+
+<?!= include('js'); ?>
+</body>
+</html>

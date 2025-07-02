@@ -1,0 +1,92 @@
+<script>
+document.getElementById('personaForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const formData = new FormData(this);
+    const projectData = Object.fromEntries(formData.entries());
+
+    // 입력값 검증
+    if (!projectData.projectName || !projectData.projectType || !projectData.requirements) {
+        showError('필수 입력 항목을 모두 작성해주세요.');
+        return;
+    }
+
+    document.getElementById('generateBtn').disabled = true;
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+
+    google.script.run
+        .withSuccessHandler(handleSuccess)
+        .withFailureHandler(handleError)
+        .generatePersonaAndQuestions(projectData);
+});
+
+function handleSuccess(response) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('generateBtn').disabled = false;
+
+    if (response && response.personas && response.personas.length > 0) {
+        displayPersonas(response.personas);
+        document.getElementById('result').style.display = 'block';
+    } else if (response && response.raw) {
+        // 파싱은 실패했지만 원본 텍스트는 있는 경우
+        displayRawResponse(response.raw);
+        document.getElementById('result').style.display = 'block';
+    } else {
+        showError('추천 결과를 생성할 수 없습니다.');
+    }
+}
+
+function handleError(error) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('generateBtn').disabled = false;
+    showError('오류가 발생했습니다: ' + (error.message || error));
+}
+
+function showError(message) {
+    const errorElement = document.getElementById('error');
+    errorElement.textContent = message;
+    errorElement.style.display = 'block';
+}
+
+function displayPersonas(personas) {
+    const area = document.getElementById('personaArea');
+    area.innerHTML = '';
+
+    personas.forEach(persona => {
+        if (!persona.description) return;
+
+        const block = document.createElement('div');
+        block.className = 'persona-block';
+
+        // 질문 목록 HTML 생성
+        let questionsHTML = '';
+        if (persona.questions && persona.questions.length > 0) {
+            questionsHTML = `
+                <div class="persona-questions-title">인터뷰 추천 문항</div>
+                <ul class="persona-questions">
+                    ${persona.questions.map(q => `<li>${q}</li>`).join('')}
+                </ul>
+            `;
+        }
+
+        block.innerHTML = `
+            <div class="persona-title">${persona.title}</div>
+            <div class="persona-desc">${persona.description}</div>
+            ${questionsHTML}
+        `;
+
+        area.appendChild(block);
+    });
+}
+
+function displayRawResponse(rawText) {
+    const area = document.getElementById('personaArea');
+    area.innerHTML = `
+        <div class="persona-block">
+            <div class="persona-desc">${rawText.replace(/\n/g, '<br>')}</div>
+        </div>
+    `;
+}
+</script>

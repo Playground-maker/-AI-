@@ -1,0 +1,61 @@
+<script>
+    document.getElementById('projectForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const projectData = Object.fromEntries(formData.entries());
+
+        // UI 상태 변경
+        document.getElementById('generateBtn').disabled = true;
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('result').style.display = 'none';
+        document.getElementById('error').style.display = 'none';
+
+        try {
+            const response = await google.script.run
+                .withSuccessHandler(handleSuccess)
+                .withFailureHandler(handleError)
+                .generateProjectTimeline(projectData);
+
+        } catch (error) {
+            handleError(error);
+        }
+    });
+
+    function handleSuccess(timeline) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('generateBtn').disabled = false;
+
+        if (timeline && timeline.length > 0) {
+            displayTimeline(timeline);
+            document.getElementById('result').style.display = 'block';
+        } else {
+            handleError('타임라인을 생성할 수 없습니다.');
+        }
+    }
+
+    function handleError(error) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('generateBtn').disabled = false;
+        document.getElementById('error').textContent = '오류가 발생했습니다: ' + error;
+        document.getElementById('error').style.display = 'block';
+    }
+
+    function displayTimeline(timeline) {
+        const timelineContainer = document.getElementById('timeline');
+        timelineContainer.innerHTML = '';
+
+        timeline.forEach(item => {
+            const timelineItem = document.createElement('div');
+            timelineItem.className = 'timeline-item';
+
+            timelineItem.innerHTML = `
+                <div class="timeline-date">${item.period || item.week || ''}</div>
+                <div class="timeline-title">${item.title || item.task || ''}</div>
+                <div class="timeline-desc">${item.description || item.details || ''}</div>
+            `;
+
+            timelineContainer.appendChild(timelineItem);
+        });
+    }
+</script>

@@ -1,0 +1,108 @@
+<script>
+    // URL 상수 정의
+    const APP_URLS = {
+        timeline: 'https://script.google.com/macros/s/AKfycbwfrKgMKEv0s1-jrE4GOlsxURv3bOeGBi994ADDHlx2X_gwN2XJKCMS9HV01pWJVF9vJg/exec',
+        feature2: 'https://script.google.com/macros/s/AKfycbyR_IDcArj5NESGUEwdYdSxwwbLDiX655zoI9Ei1P1tm8IYj8X-yI5pLotx2f19AxJYkw/exec'
+    };
+
+    // 프로젝트 일정 관리 도구로 이동
+    function openTimeline() {
+        showLoading('프로젝트 일정 관리 도구를 불러오는 중...');
+
+        // 새 탭에서 열기
+        window.open(APP_URLS.timeline, '_blank');
+
+        // 로딩 숨기기
+        setTimeout(() => {
+            hideLoading();
+        }, 1000);
+    }
+
+    // 고객 페르소나 & 인터뷰 설계 도구로 이동
+    function openFeature2() {
+        showLoading('고객 페르소나 & 인터뷰 설계 도구를 불러오는 중...');
+        window.open(APP_URLS.feature2, '_blank');
+
+        setTimeout(() => {
+            hideLoading();
+        }, 1000);
+    }
+
+    // 로딩 표시
+    function showLoading(message = '불러오는 중...') {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'loadingOverlay';
+        loadingDiv.className = 'loading';
+        loadingDiv.style.display = 'block';
+
+        loadingDiv.innerHTML = `
+            <div class="loading-spinner"></div>
+            <p>${message}</p>
+        `;
+
+        document.body.appendChild(loadingDiv);
+    }
+
+    // 로딩 숨기기
+    function hideLoading() {
+        const loadingDiv = document.getElementById('loadingOverlay');
+        if (loadingDiv) {
+            loadingDiv.remove();
+        }
+    }
+
+    // 페이지 로드 시 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+        // 카드 호버 효과 강화
+        const toolCards = document.querySelectorAll('.tool-card');
+
+        toolCards.forEach(card => {
+            if (!card.classList.contains('coming-soon')) {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-10px) scale(1.02)';
+                });
+
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            }
+        });
+
+        // 키보드 접근성
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                const focused = document.activeElement;
+                if (focused.classList.contains('tool-card')) {
+                    const btn = focused.querySelector('.tool-btn');
+                    if (!btn.disabled) {
+                        btn.click();
+                    }
+                }
+            }
+        });
+
+        // 애니메이션 효과
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        });
+
+        // 카드들에 애니메이션 적용
+        toolCards.forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = 'all 0.6s ease';
+            observer.observe(card);
+        });
+    });
+
+    // 에러 핸들링
+    window.addEventListener('error', function(e) {
+        console.error('페이지 오류:', e.error);
+        hideLoading();
+    });
+</script>
