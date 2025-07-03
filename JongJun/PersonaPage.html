@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <style>
+    /* 기존 CSS 동일하게 유지 */
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+    body {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      background-color: #f7f8fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+    .container {
+      background-color: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+    }
+    h2.page-title {
+      font-size: 30px;
+      font-weight: 800;
+      color: #1a1a1a;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 25px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 16px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 16px 18px;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 17px;
+      box-sizing: border-box;
+      color: #333;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #0047b8;
+      box-shadow: 0 0 0 4px rgba(0, 71, 184, 0.15);
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    .action-button {
+      background-color: #0047b8;
+      color: #ffffff;
+      padding: 18px 25px;
+      border: none;
+      border-radius: 14px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 20px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    .action-button:hover {
+      background-color: #003699;
+      transform: translateY(-3px);
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+    }
+    .action-button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .back-button {
+      background-color: #e9eef6;
+      color: #0047b8;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 15px;
+    }
+    .back-button:hover {
+      background-color: #dbe4f1;
+      transform: translateY(-2px);
+    }
+    .back-button:active {
+      transform: translateY(0);
+    }
+
+    /* 로딩 오버레이 */
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .spinner {
+      border: 7px solid #e0e0e0;
+      border-top: 7px solid #0047b8;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-message {
+      color: #0047b8;
+      font-weight: 700;
+      font-size: 18px;
+      margin-top: 25px;
+    }
+
+    /* 생성된 결과 페이지 스타일 - 페르소나 페이지 전용 */
+    #personaResult .result-container {
+      background-color: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      padding: 40px;
+      max-width: 800px;
+      width: 100%;
+    }
+    #personaResult .result-container .title {
+      font-size: 30px;
+      font-weight: 800;
+      color: #1a1a1a;
+      margin-bottom: 25px;
+      text-align: center;
+    }
+    #personaResult .result-container .description {
+      font-size: 16px;
+      color: #666;
+      margin-bottom: 30px;
+      line-height: 1.7;
+      text-align: center;
+    }
+    .persona-name {
+      font-size: 24px;
+      font-weight: 800;
+      color: #0047b8;
+      margin-top: 0;
+      margin-bottom: 25px;
+      text-align: center;
+    }
+    .persona-section {
+      background-color: #fcfdff;
+      border: 1px solid #e7eef7;
+      border-left: 6px solid #0047b8;
+      padding: 20px 25px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .persona-section:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+    .persona-section h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0047b8;
+      margin-top: 0;
+      margin-bottom: 12px;
+      position: relative;
+      padding-left: 35px;
+    }
+    .persona-section h3::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 24px;
+      background-size: contain;
+      background-repeat: no-repeat;
+    }
+    .persona-section h3:first-of-type::before {
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%230047b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>');
+    }
+    .persona-section h3:nth-of-type(2)::before {
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%230047b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="4"></circle><path d="M12 22v-2a4 4 0 0 0-4-4H4a4 4 0 0 0-4 4v2"></path><path d="M16 22v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"></path></svg>');
+    }
+    .persona-section h3:nth-of-type(3)::before {
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%230047b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>');
+    }
+    .persona-section h3:nth-of-type(4)::before {
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%230047b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>');
+    }
+    .persona-section h3:nth-of-type(5)::before {
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%230047b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>');
+    }
+
+    .persona-section p, .persona-section ul {
+      font-size: 15.5px;
+      color: #555;
+      line-height: 1.7;
+      margin-top: 8px;
+    }
+    .persona-section ul {
+      list-style: none;
+      padding-left: 0;
+      margin-top: 10px;
+    }
+    .persona-section li {
+      margin-bottom: 8px;
+      position: relative;
+      padding-left: 20px;
+    }
+    .persona-section li::before {
+        content: '•';
+        color: #0047b8;
+        font-size: 1.2em;
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+  </style>
+</head>
+<body>
+<div id="inputForm" class="container">
+    <h2 class="page-title">페르소나 생성</h2>
+    <div class="form-group">
+        <label for="personaProjectName">프로젝트명</label>
+        <input type="text" id="personaProjectName" placeholder="예: 'MZ세대 위한 모바일 건강보험 상품'">
+    </div>
+    <div class="form-group">
+        <label for="personaProjectType">프로젝트 유형</label>
+        <select id="personaProjectType">
+            <option value="">선택하세요</option>
+            <option value="신규 서비스 개발">신규 서비스 개발</option>
+            <option value="기존 서비스 개선">기존 서비스 개선</option>
+            <option value="캠페인 기획">캠페인 기획</option>
+            <option value="콘텐츠 기획">콘텐츠 기획</option>
+            <option value="기타">기타</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="mainFeatures">주요 기능/요구사항</label>
+        <textarea id="mainFeatures" placeholder="예: 간편 가입, 맞춤형 보험 추천, AI 기반 건강 코칭"></textarea>
+    </div>
+    <div class="form-group">
+        <label for="targetMarket">원하는 타겟 시장/고객</label>
+        <textarea id="targetMarket" placeholder="예: 20대 사회 초년생, 40대 워킹맘, 디지털에 익숙한 시니어"></textarea>
+    </div>
+    <div class="form-group">
+        <label for="otherNotes">기타 참고사항</label>
+        <textarea id="otherNotes" placeholder="예: 특정 고객 페인 포인트, 경쟁사 분석 결과 등"></textarea>
+    </div>
+    <button class="action-button" onclick="generatePersona()">페르소나 생성하기</button>
+    <button class="back-button" onclick="redirectToPage('Index')">메인으로 돌아가기</button>
+</div>
+
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="spinner"></div>
+    <p class="loading-message">AI가 페르소나를 생성 중입니다...</p>
+</div>
+
+<div id="personaResult" style="display: none;">
+    <div class="container result-container" id="personaContent"></div>
+    <button class="back-button" onclick="redirectToPage('Index')">메인으로 돌아가기</button>
+</div>
+
+<script>
+    // 웹 앱의 기본 URL을 가져오는 함수 (Code.gs에 직접 포함시켜도 됨)
+    function getScriptUrl() {
+      // Apps Script 실행 환경에서만 작동하며, 배포된 웹 앱의 URL을 반환합니다.
+      return ScriptApp.get!='function' ? 'dummy_url_for_local_test' : ScriptApp.getService().getUrl();
+    }
+
+    /**
+     * 특정 페이지로 리디렉션하는 함수.
+     * @param {string} pageName 리디렉션할 HTML 파일의 이름 (예: 'TimelinePage', 'PersonaPage')
+     */
+    function redirectToPage(pageName) {
+      document.getElementById('loadingOverlay').style.display = 'flex'; // 로딩 오버레이 표시
+
+      google.script.run
+        .withSuccessHandler(function(url) {
+          window.location.href = url + '?page=' + pageName;
+        })
+        .withFailureHandler(function(error) {
+          alert('페이지 리디렉션 실패: ' + error.message + '\n콘솔을 확인해주세요.');
+          console.error('페이지 리디렉션 오류:', error);
+          document.getElementById('loadingOverlay').style.display = 'none';
+        })
+        .getScriptUrl(); // 서버에서 현재 스크립트의 URL을 가져오는 함수 호출
+    }
+
+    function generatePersona() {
+      const formData = {
+        projectName: document.getElementById('personaProjectName').value,
+        projectType: document.getElementById('personaProjectType').value,
+        mainFeatures: document.getElementById('mainFeatures').value,
+        targetMarket: document.getElementById('targetMarket').value,
+        otherNotes: document.getElementById('otherNotes').value
+      };
+
+      if (!formData.projectName || !formData.projectType || !formData.targetMarket) {
+        alert('프로젝트명, 프로젝트 유형, 타겟 시장/고객은 필수 입력 사항입니다.');
+        return;
+      }
+
+      document.getElementById('loadingOverlay').style.display = 'flex';
+
+      google.script.run
+        .withSuccessHandler(function(generatedHtml) {
+          document.getElementById('personaContent').innerHTML = generatedHtml;
+          document.getElementById('inputForm').style.display = 'none';
+          document.getElementById('personaResult').style.display = 'block';
+          document.getElementById('loadingOverlay').style.display = 'none';
+        })
+        .withFailureHandler(function(error) {
+          alert('페르소나 생성 실패: ' + error.message + '\n콘솔을 확인해주세요.');
+          console.error('페르소나 생성 오류:', error);
+          document.getElementById('loadingOverlay').style.display = 'none';
+        })
+        .generatePersona(formData);
+    }
+  </script>
+</body>
+</html>

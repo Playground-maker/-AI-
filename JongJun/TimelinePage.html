@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <style>
+    /* 기존 CSS 동일하게 유지 */
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+    body {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      margin: 0;
+      padding: 40px 20px;
+      background-color: #f7f8fa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+    .container {
+      background-color: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+    }
+    h2.page-title {
+      font-size: 30px;
+      font-weight: 800;
+      color: #1a1a1a;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 25px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 16px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 16px 18px;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 17px;
+      box-sizing: border-box;
+      color: #333;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #0047b8;
+      box-shadow: 0 0 0 4px rgba(0, 71, 184, 0.15);
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    .action-button {
+      background-color: #0047b8;
+      color: #ffffff;
+      padding: 18px 25px;
+      border: none;
+      border-radius: 14px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 20px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    .action-button:hover {
+      background-color: #003699;
+      transform: translateY(-3px);
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+    }
+    .action-button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .back-button {
+      background-color: #e9eef6;
+      color: #0047b8;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 15px;
+    }
+    .back-button:hover {
+      background-color: #dbe4f1;
+      transform: translateY(-2px);
+    }
+    .back-button:active {
+      transform: translateY(0);
+    }
+
+    /* 로딩 오버레이 */
+    .loading-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.9);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .spinner {
+      border: 7px solid #e0e0e0;
+      border-top: 7px solid #0047b8;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading-message {
+      color: #0047b8;
+      font-weight: 700;
+      font-size: 18px;
+      margin-top: 25px;
+    }
+
+    /* 생성된 결과 페이지 스타일 - 타임라인 페이지 전용 */
+    #timelineResult .result-container {
+      background-color: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+      padding: 40px;
+      max-width: 800px;
+      width: 100%;
+    }
+    #timelineResult .result-container .title {
+      font-size: 30px;
+      font-weight: 800;
+      color: #1a1a1a;
+      margin-bottom: 25px;
+      text-align: center;
+    }
+    #timelineResult .result-container .description {
+      font-size: 16px;
+      color: #666;
+      margin-bottom: 30px;
+      line-height: 1.7;
+      text-align: center;
+    }
+    .timeline-item {
+      background-color: #fcfdff;
+      border: 1px solid #e7eef7;
+      border-left: 6px solid #0047b8;
+      padding: 20px 25px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .timeline-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+    .timeline-item h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0047b8;
+      margin-top: 0;
+      margin-bottom: 12px;
+      position: relative;
+      padding-left: 35px;
+    }
+    .timeline-item h3::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 24px;
+      height: 24px;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%230047b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>');
+      background-size: contain;
+      background-repeat: no-repeat;
+    }
+    .timeline-item ul {
+      list-style: disc;
+      padding-left: 25px;
+      margin-top: 10px;
+      color: #555;
+      font-size: 15px;
+    }
+    .timeline-item li {
+      margin-bottom: 6px;
+    }
+    .timeline-item li:last-child {
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+<body>
+<div id="inputForm" class="container">
+    <h2 class="page-title">타임라인 생성</h2>
+    <div class="form-group">
+        <label for="projectName">프로젝트명</label>
+        <input type="text" id="projectName" placeholder="예: '신규 비대면 보험 가입 프로세스 개선'">
+    </div>
+    <div class="form-group">
+        <label for="projectType">프로젝트 유형</label>
+        <select id="projectType">
+            <option value="">선택하세요</option>
+            <option value="신규 서비스 개발">신규 서비스 개발</option>
+            <option value="기존 서비스 개선">기존 서비스 개선</option>
+            <option value="내부 시스템 구축">내부 시스템 구축</option>
+            <option value="데이터 분석 프로젝트">데이터 분석 프로젝트</option>
+            <option value="기타">기타</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="expectedDuration">예상 기간 (예: 3개월, 6주)</label>
+        <input type="text" id="expectedDuration" placeholder="예: 3개월, 6주">
+    </div>
+    <div class="form-group">
+        <label for="teamSize">팀 규모 (예: 5명, 20명)</label>
+        <input type="text" id="teamSize" placeholder="예: 기획 2명, 개발 3명, 디자인 1명">
+    </div>
+    <div class="form-group">
+        <label for="priority">우선 순위</label>
+        <select id="priority">
+            <option value="">선택하세요</option>
+            <option value="최상">최상</option>
+            <option value="상">상</option>
+            <option value="중">중</option>
+            <option value="하">하</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="requirements">주요 요구사항 및 기능</label>
+        <textarea id="requirements" placeholder="예: 간편 보험금 청구 기능, AI 챗봇 상담 도입, 마이데이터 연동 등"></textarea>
+    </div>
+    <div class="form-group">
+        <label for="constraints">제약 사항 및 특이사항</label>
+        <textarea id="constraints" placeholder="예: 특정 보안 규정 준수, 레거시 시스템 연동 필요, 예산 제약 등"></textarea>
+    </div>
+    <button class="action-button" onclick="generateTimeline()">타임라인 생성하기</button>
+    <button class="back-button" onclick="redirectToPage('Index')">메인으로 돌아가기</button>
+</div>
+
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="spinner"></div>
+    <p class="loading-message">AI가 타임라인을 생성 중입니다...</p>
+</div>
+
+<div id="timelineResult" style="display: none;">
+    <div class="container result-container" id="timelineContent"></div>
+    <button class="back-button" onclick="redirectToPage('Index')">메인으로 돌아가기</button>
+</div>
+
+<script>
+    // 웹 앱의 기본 URL을 가져오는 함수 (Code.gs에 직접 포함시켜도 됨)
+    function getScriptUrl() {
+      // Apps Script 실행 환경에서만 작동하며, 배포된 웹 앱의 URL을 반환합니다.
+      return ScriptApp.get!='function' ? 'dummy_url_for_local_test' : ScriptApp.getService().getUrl();
+    }
+
+    /**
+     * 특정 페이지로 리디렉션하는 함수.
+     * @param {string} pageName 리디렉션할 HTML 파일의 이름 (예: 'TimelinePage', 'PersonaPage')
+     */
+    function redirectToPage(pageName) {
+      document.getElementById('loadingOverlay').style.display = 'flex'; // 로딩 오버레이 표시
+
+      google.script.run
+        .withSuccessHandler(function(url) {
+          window.location.href = url + '?page=' + pageName;
+        })
+        .withFailureHandler(function(error) {
+          alert('페이지 리디렉션 실패: ' + error.message + '\n콘솔을 확인해주세요.');
+          console.error('페이지 리디렉션 오류:', error);
+          document.getElementById('loadingOverlay').style.display = 'none';
+        })
+        .getScriptUrl(); // 서버에서 현재 스크립트의 URL을 가져오는 함수 호출
+    }
+
+    function generateTimeline() {
+      const formData = {
+        projectName: document.getElementById('projectName').value,
+        projectType: document.getElementById('projectType').value,
+        expectedDuration: document.getElementById('expectedDuration').value,
+        teamSize: document.getElementById('teamSize').value,
+        priority: document.getElementById('priority').value,
+        requirements: document.getElementById('requirements').value,
+        constraints: document.getElementById('constraints').value
+      };
+
+      if (!formData.projectName || !formData.projectType || !formData.expectedDuration) {
+        alert('프로젝트명, 프로젝트 유형, 예상 기간은 필수 입력 사항입니다.');
+        return;
+      }
+
+      document.getElementById('loadingOverlay').style.display = 'flex';
+
+      google.script.run
+        .withSuccessHandler(function(generatedHtml) {
+          document.getElementById('timelineContent').innerHTML = generatedHtml;
+          document.getElementById('inputForm').style.display = 'none';
+          document.getElementById('timelineResult').style.display = 'block';
+          document.getElementById('loadingOverlay').style.display = 'none';
+        })
+        .withFailureHandler(function(error) {
+          alert('타임라인 생성 실패: ' + error.message + '\n콘솔을 확인해주세요.');
+          console.error('타임라인 생성 오류:', error);
+          document.getElementById('loadingOverlay').style.display = 'none';
+        })
+        .generateTimeline(formData);
+    }
+  </script>
+</body>
+</html>
