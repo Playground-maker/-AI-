@@ -13,8 +13,8 @@ function generatePersonaAndQuestions(projectData) {
     // 프롬프트 생성
     const prompt = createPersonaPrompt(projectData);
 
-    // 포텐스닷 AI API 호출
-    const aiResponse = callPotensAI(prompt);
+    // 제미나이 API 호출
+    const aiResponse = callGeminiAI(prompt);
 
     // 결과 파싱
     const parsed = parsePersonaResponse(aiResponse);
@@ -46,49 +46,53 @@ function createPersonaPrompt(projectData) {
 `;
 }
 
-function callPotensAI(prompt) {
-  const apiUrl = 'https://ai.potens.ai/api/chat';
-  const apiKey = '1zMPFImaBe78W5aEC9MlVSvj1bzZFoei';
+function callGeminiAI(prompt) {
+  const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+  const apiKey = '-------------------------------'; // 실제 API 키로 교체 필요
 
   const payload = {
-    prompt: prompt,
-    max_tokens: 2500
+    contents: [{
+      parts: [{
+        text: prompt
+      }]
+    }]
   };
 
   const options = {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      'X-goog-api-key': apiKey
     },
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
   };
 
-  const response = UrlFetchApp.fetch(apiUrl, options);
-  const responseText = response.getContentText();
-  const responseCode = response.getResponseCode();
-
-  if (responseCode !== 200) {
-    throw new Error(`API 호출 실패: ${responseCode} - ${responseText}`);
-  }
-
-  // API 응답 구조에 따라 적절한 필드에서 텍스트 추출
   try {
-    const responseData = JSON.parse(responseText);
-    if (responseData.choices && responseData.choices.length > 0 && responseData.choices[0].text) {
-      return responseData.choices[0].text;
-    }
-    if (responseData.response) return responseData.response;
-    if (responseData.message) return responseData.message;
-    if (responseData.content) return responseData.content;
-    if (responseData.result && responseData.result.content) return responseData.result.content;
+    const response = UrlFetchApp.fetch(apiUrl, options);
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
 
-    // 다른 가능한 응답 구조가 없으면 전체 응답 반환
-    return responseText;
-  } catch (e) {
-    console.error('API 응답 파싱 오류:', e);
-    return responseText;
+    if (responseCode !== 200) {
+      throw new Error(`API 호출 실패: ${responseCode}, ${responseText}`);
+    }
+
+    const responseData = JSON.parse(responseText);
+
+    // Gemini API 응답 구조에서 텍스트 추출
+    if (responseData.candidates &&
+        responseData.candidates[0] &&
+        responseData.candidates[0].content &&
+        responseData.candidates[0].content.parts) {
+      return responseData.candidates[0].content.parts[0].text;
+    } else {
+      console.error('예상치 못한 API 응답 형식:', JSON.stringify(responseData));
+      throw new Error('API 응답 형식이 예상과 다릅니다.');
+    }
+
+  } catch (error) {
+    console.error('API 호출 오류:', error);
+    throw new Error('Gemini API 호출 중 오류가 발생했습니다: ' + error.message);
   }
 }
 

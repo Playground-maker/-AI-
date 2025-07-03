@@ -22,8 +22,8 @@ function generateProjectTimeline(projectData) {
     // 프로젝트 정보를 기반으로 AI 프롬프트 생성
     const prompt = createPrompt(projectData);
 
-    // 포텐스닷 AI API 호출
-    const aiResponse = callPotensAI(prompt);
+    // 제미나이 API 호출
+    const aiResponse = callGeminiAI(prompt);
 
     // AI 응답을 파싱하여 타임라인 구조로 변환
     const timeline = parseTimelineResponse(aiResponse);
@@ -70,21 +70,26 @@ function createPrompt(projectData) {
   return prompt;
 }
 
-function callPotensAI(prompt) {
-  const apiUrl = 'https://ai.potens.ai/api/chat';
-  const apiKey = '1zMPFImaBe78W5aEC9MlVSvj1bzZFoei';
+function callGeminiAI(prompt) {
+  const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+  const apiKey = '---------------------------------'; // 실제 API 키로 교체 필요
 
   const payload = {
-    prompt: prompt
+    contents: [{
+      parts: [{
+        text: prompt
+      }]
+    }]
   };
 
   const options = {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      'X-goog-api-key': apiKey
     },
-    payload: JSON.stringify(payload)
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
   };
 
   try {
@@ -92,26 +97,26 @@ function callPotensAI(prompt) {
     const responseCode = response.getResponseCode();
 
     if (responseCode !== 200) {
-      throw new Error(`API 호출 실패: ${responseCode}`);
+      throw new Error(`API 호출 실패: ${responseCode}, ${response.getContentText()}`);
     }
 
     const responseText = response.getContentText();
     const responseData = JSON.parse(responseText);
 
-    // API 응답 구조에 따라 적절한 필드에서 텍스트 추출
-    if (responseData.response) {
-      return responseData.response;
-    } else if (responseData.message) {
-      return responseData.message;
-    } else if (responseData.content) {
-      return responseData.content;
+    // Gemini API 응답 구조에서 텍스트 추출
+    if (responseData.candidates &&
+        responseData.candidates[0] &&
+        responseData.candidates[0].content &&
+        responseData.candidates[0].content.parts) {
+      return responseData.candidates[0].content.parts[0].text;
     } else {
-      return responseText;
+      console.error('예상치 못한 API 응답 형식:', JSON.stringify(responseData));
+      throw new Error('API 응답 형식이 예상과 다릅니다.');
     }
 
   } catch (error) {
     console.error('API 호출 오류:', error);
-    throw new Error('AI API 호출 중 오류가 발생했습니다: ' + error.message);
+    throw new Error('Gemini API 호출 중 오류가 발생했습니다: ' + error.message);
   }
 }
 
