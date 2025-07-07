@@ -11,7 +11,7 @@ function include(filename) {
 // 각 기능의 URL 정보를 반환하는 함수
 function getAppUrls() {
   return {
-    timeline: '타임라인 GAS 최종 배포 url 올리기',
-    feature2: '고객페르소나_문항추천 최종 배포 url 올리기'
+    timeline: 'https://script.google.com/macros/s/AKfycbwXrZEfhIZfhDYLLvgsLRlnyc5tLuhh1nDDy3aEMqNhGGKZU5lgfYkX5fAhEuwNSm5eyw/exec',
+    feature2: 'https://script.google.com/macros/s/AKfycbyCynw34CcPKcKTW2WGXrt5FbDHpn1GBB8pknzFxJOKYfX1DGX0oh5SGuBM4ccKiOwp7g/exec'
   };
 }

@@ -5,6 +5,8 @@ document.getElementById('personaForm').addEventListener('submit', function(e) {
     const formData = new FormData(this);
     const projectData = Object.fromEntries(formData.entries());
 
+    console.log('페르소나 폼 데이터:', projectData);
+
     // 입력값 검증
     if (!projectData.projectName || !projectData.projectType || !projectData.requirements) {
         showError('필수 입력 항목을 모두 작성해주세요.');
@@ -23,25 +25,38 @@ document.getElementById('personaForm').addEventListener('submit', function(e) {
 });
 
 function handleSuccess(response) {
+    console.log('페르소나 생성 성공:', response);
+
     document.getElementById('loading').style.display = 'none';
     document.getElementById('generateBtn').disabled = false;
 
     if (response && response.personas && response.personas.length > 0) {
         displayPersonas(response.personas);
         document.getElementById('result').style.display = 'block';
+
+        // 성공 알림 메시지 표시
+        showSuccessMessage('✅ 페르소나가 생성되고 스프레드시트에 저장되었습니다!');
     } else if (response && response.raw) {
         // 파싱은 실패했지만 원본 텍스트는 있는 경우
         displayRawResponse(response.raw);
         document.getElementById('result').style.display = 'block';
+
+        // 성공 알림 메시지 표시
+        showSuccessMessage('✅ 추천이 생성되고 스프레드시트에 저장되었습니다!');
     } else {
         showError('추천 결과를 생성할 수 없습니다.');
     }
 }
 
 function handleError(error) {
+    console.error('페르소나 생성 오류:', error);
+
     document.getElementById('loading').style.display = 'none';
     document.getElementById('generateBtn').disabled = false;
     showError('오류가 발생했습니다: ' + (error.message || error));
+
+    // 오류 알림 메시지 표시
+    showErrorMessage('❌ 처리 중 오류가 발생했습니다: ' + (error.message || error));
 }
 
 function showError(message) {
@@ -54,7 +69,7 @@ function displayPersonas(personas) {
     const area = document.getElementById('personaArea');
     area.innerHTML = '';
 
-    personas.forEach(persona => {
+    personas.forEach((persona, index) => {
         if (!persona.description) return;
 
         const block = document.createElement('div');
@@ -78,15 +93,115 @@ function displayPersonas(personas) {
         `;
 
         area.appendChild(block);
+
+        // 순차적 애니메이션 효과
+        setTimeout(() => {
+            block.classList.add('show');
+        }, index * 300);
     });
 }
 
 function displayRawResponse(rawText) {
     const area = document.getElementById('personaArea');
-    area.innerHTML = `
-        <div class="persona-block">
-            <div class="persona-desc">${rawText.replace(/\n/g, '<br>')}</div>
-        </div>
+    const block = document.createElement('div');
+    block.className = 'persona-block';
+    block.innerHTML = `
+        <div class="persona-desc">${rawText.replace(/\n/g, '<br>')}</div>
     `;
+    area.appendChild(block);
+
+    // 애니메이션 효과
+    setTimeout(() => {
+        block.classList.add('show');
+    }, 100);
 }
+
+function showSuccessMessage(message) {
+    // 기존 메시지 제거
+    const existingMsg = document.querySelector('.success-message');
+    if (existingMsg) {
+        existingMsg.remove();
+    }
+
+    // 새 메시지 생성
+    const msgElement = document.createElement('div');
+    msgElement.className = 'success-message';
+    msgElement.textContent = message;
+
+    document.body.appendChild(msgElement);
+
+    // 애니메이션 시작
+    setTimeout(() => {
+        msgElement.classList.add('show');
+    }, 100);
+
+    // 5초 후 제거
+    setTimeout(() => {
+        msgElement.classList.remove('show');
+        setTimeout(() => {
+            if (msgElement.parentNode) {
+                msgElement.remove();
+            }
+        }, 300);
+    }, 5000);
+}
+
+function showErrorMessage(message) {
+    // 기존 메시지 제거
+    const existingMsg = document.querySelector('.error-message');
+    if (existingMsg) {
+        existingMsg.remove();
+    }
+
+    // 새 메시지 생성
+    const msgElement = document.createElement('div');
+    msgElement.className = 'success-message error-message';
+    msgElement.style.background = '#f44336';
+    msgElement.textContent = message;
+
+    document.body.appendChild(msgElement);
+
+    // 애니메이션 시작
+    setTimeout(() => {
+        msgElement.classList.add('show');
+    }, 100);
+
+    // 7초 후 제거 (오류는 좀 더 오래 보여줌)
+    setTimeout(() => {
+        msgElement.classList.remove('show');
+        setTimeout(() => {
+            if (msgElement.parentNode) {
+                msgElement.remove();
+            }
+        }, 300);
+    }, 7000);
+}
+
+// 폼 입력 시 실시간 유효성 검사
+document.addEventListener('DOMContentLoaded', function() {
+    const requiredFields = document.querySelectorAll('input[required], select[required], textarea[required]');
+
+    requiredFields.forEach(field => {
+        field.addEventListener('blur', function() {
+            if (this.value.trim() === '') {
+                this.style.borderColor = '#f44336';
+            } else {
+                this.style.borderColor = '#00c73c';
+            }
+        });
+
+        field.addEventListener('input', function() {
+            if (this.value.trim() !== '') {
+                this.style.borderColor = '#00c73c';
+            }
+        });
+    });
+});
+
+// 페이지 로드 시 환영 메시지
+window.addEventListener('load', function() {
+    setTimeout(() => {
+        showSuccessMessage('💡 고객 페르소나 추천 도구에 오신 것을 환영합니다!');
+    }, 1000);
+});
 </script>

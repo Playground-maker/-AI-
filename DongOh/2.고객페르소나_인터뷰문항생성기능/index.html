@@ -1,157 +1,73 @@
-function doGet(e) {
-return HtmlService.createTemplateFromFile('index').evaluate()
-.setTitle('고객 페르소나 & 인터뷰 문항 추천')
-.setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고객 페르소나 & 인터뷰 문항 추천</title>
+    <?!= include('style'); ?>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>💡 고객 페르소나 & 인터뷰 문항 추천</h1>
+        <p>AI가 프로젝트에 맞는 고객 페르소나와 인터뷰 문항을 추천해드립니다.</p>
+    </div>
+    <div class="content">
+        <form id="personaForm">
+            <div class="form-group">
+                <label for="projectName">프로젝트명</label>
+                <input type="text" id="projectName" name="projectName" placeholder="예: 건강 커뮤니티 앱" required>
+            </div>
+            <div class="form-group">
+                <label for="projectType">프로젝트 유형</label>
+                <select id="projectType" name="projectType" required>
+                    <option value="">선택하세요</option>
+                    <option value="웹 서비스">웹 서비스</option>
+                    <option value="모바일 앱">모바일 앱</option>
+                    <option value="B2B 솔루션">B2B 솔루션</option>
+                    <option value="B2C 플랫폼">B2C 플랫폼</option>
+                    <option value="기타">기타</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="requirements">주요 기능/요구사항</label>
+                <textarea id="requirements" name="requirements" placeholder="예: 챌린지, 커뮤니티, 알림, 건강 데이터 관리 등" required></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="targetMarket">타겟 시장/고객</label>
+                    <input type="text" id="targetMarket" name="targetMarket" placeholder="예: 20~40대 직장인, 건강 관심자 등">
+                </div>
+                <div class="form-group">
+                    <label for="etc">기타 참고사항</label>
+                    <input type="text" id="etc" name="etc" placeholder="예: 기존 서비스와 차별점, 특이사항 등">
+                </div>
+            </div>
+            <button type="submit" class="btn-primary" id="generateBtn">
+                🤖 AI 추천 받기
+            </button>
+        </form>
 
-function include(filename) {
-return HtmlService.createHtmlOutputFromFile(filename).getContent();
-}
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <p>AI가 추천을 생성 중입니다...</p>
+            <p class="loading-sub">스프레드시트에 자동 저장됩니다</p>
+        </div>
 
-function generatePersonaAndQuestions(projectData) {
-try {
-// 프롬프트 생성
-const prompt = createPersonaPrompt(projectData);
+        <div class="error" id="error"></div>
 
-// 포텐스닷 AI API 호출
-const aiResponse = callPotensAI(prompt);
-
-// 결과 파싱
-const parsed = parsePersonaResponse(aiResponse);
-
-return parsed;
-
-} catch (error) {
-console.error('Error generating persona/questions:', error);
-throw new Error('추천 생성 중 오류가 발생했습니다: ' + error.message);
-}
-}
-
-function createPersonaPrompt(projectData) {
-return `
-아래 프로젝트 정보를 참고하여,
-1) 추천 고객 페르소나 2개(각 페르소나의 특징, 니즈, 사용 맥락 포함)
-2) 각 페르소나별로 고객 인터뷰 설문 문항 5개씩
-를 표 형식 없이 명확하게 구분하여 제시해줘.
-
-각 페르소나는 "페르소나 1:", "페르소나 2:"로 시작하고,
-각 페르소나의 인터뷰 문항은 "인터뷰 문항:"으로 구분해줘.
-
-[프로젝트 정보]
-- 프로젝트명: ${projectData.projectName}
-- 프로젝트 유형: ${projectData.projectType}
-- 주요 기능/요구사항: ${projectData.requirements}
-- 타겟 시장/고객: ${projectData.targetMarket || '미입력'}
-- 기타 참고: ${projectData.etc || '없음'}
-`;
-}
-
-function callPotensAI(prompt) {
-const apiUrl = 'https://ai.potens.ai/api/chat';
-const apiKey = '1zMPFImaBe78W5aEC9MlVSvj1bzZFoei';
-
-const payload = {
-prompt: prompt,
-max_tokens: 2500
-};
-
-const options = {
-method: 'POST',
-headers: {
-'Content-Type': 'application/json',
-'Authorization': `Bearer ${apiKey}`
-},
-payload: JSON.stringify(payload),
-muteHttpExceptions: true
-};
-
-const response = UrlFetchApp.fetch(apiUrl, options);
-const responseText = response.getContentText();
-const responseCode = response.getResponseCode();
-
-if (responseCode !== 200) {
-throw new Error(`API 호출 실패: ${responseCode} - ${responseText}`);
-}
-
-// API 응답 구조에 따라 적절한 필드에서 텍스트 추출
-try {
-const responseData = JSON.parse(responseText);
-if (responseData.choices && responseData.choices.length > 0 && responseData.choices[0].text) {
-return responseData.choices[0].text;
-}
-if (responseData.response) return responseData.response;
-if (responseData.message) return responseData.message;
-if (responseData.content) return responseData.content;
-if (responseData.result && responseData.result.content) return responseData.result.content;
-
-// 다른 가능한 응답 구조가 없으면 전체 응답 반환
-return responseText;
-} catch (e) {
-console.error('API 응답 파싱 오류:', e);
-return responseText;
-}
-}
-
-function parsePersonaResponse(aiResponse) {
-try {
-// "페르소나 1:" 기준으로 분리
-const personaBlocks = aiResponse.split(/페르소나\s*1\s*[:：]/i);
-
-if (personaBlocks.length < 2) {
-// 파싱 실패 시 원문 반환
-console.log('페르소나 1을 찾을 수 없습니다');
-return { personas: [], raw: aiResponse };
-}
-
-// "페르소나 2:" 기준으로 두번째 분리
-const secondSplit = personaBlocks[1].split(/페르소나\s*2\s*[:：]/i);
-const persona1Block = secondSplit[0].trim();
-const persona2Block = secondSplit.length > 1 ? secondSplit[1].trim() : '';
-
-if (!persona2Block) {
-console.log('페르소나 2를 찾을 수 없습니다');
-}
-
-// 페르소나 객체 생성 함수
-function createPersona(block, title) {
-// "인터뷰 문항:" 기준으로 분리
-const parts = block.split(/인터뷰\s*문항\s*[:：]/i);
-
-const description = parts[0].trim();
-let questions = [];
-
-if (parts.length > 1) {
-const rawQuestions = parts[1].trim();
-// 번호 + 질문 형태로 되어있을 경우
-questions = rawQuestions
-.split(/(?:\d+\.|\n-|\n\*|\n•)/g) // 번호나 불릿으로 분리
-.map(q => q.trim())
-.filter(q => q.length > 2); // 공백이나 너무 짧은 문자열 제거
-}
-
-// 질문이 5개 미만이라면, 줄바꿈으로 분리 시도
-if (questions.length < 3 && parts.length > 1) {
-questions = parts[1].trim().split('\n')
-.map(q => q.trim())
-.filter(q => q.length > 5);
-}
-
-return {
-title: title,
-description: description,
-questions: questions.slice(0, 8) // 너무 많은 문항이 나오면 최대 8개로 제한
-};
-}
-
-const persona1 = createPersona(persona1Block, '페르소나 1');
-const persona2 = createPersona(persona2Block, '페르소나 2');
-
-return {
-personas: [persona1, persona2],
-raw: aiResponse
-};
-} catch (error) {
-console.error('페르소나 파싱 오류:', error);
-return { personas: [], raw: aiResponse, error: error.toString() };
-}
-}
+        <div class="result" id="result">
+            <h3>👤 추천 고객 페르소나 & 인터뷰 문항</h3>
+            <div class="save-notice">
+                ✅ 입력 정보와 AI 응답이 스프레드시트에 저장되었습니다
+            </div>
+            <div id="personaArea"></div>
+        </div>
+    </div>
+    <div class="footer">
+        <p>© 2023 Powered by Potens.AI</p>
+    </div>
+</div>
+<?!= include('js'); ?>
+</body>
+</html>

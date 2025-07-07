@@ -18,21 +18,111 @@ function include(filename) {
 }
 
 function generateProjectTimeline(projectData) {
+  let aiResponse = '';
+  let timeline = [];
+
   try {
+    console.log('프로젝트 데이터:', JSON.stringify(projectData));
+
     // 프로젝트 정보를 기반으로 AI 프롬프트 생성
     const prompt = createPrompt(projectData);
+    console.log('프롬프트 생성 완료');
 
     // 제미나이 API 호출
-    const aiResponse = callGeminiAI(prompt);
+    aiResponse = callGeminiAI(prompt);
+    console.log('AI 응답 받음');
 
     // AI 응답을 파싱하여 타임라인 구조로 변환
-    const timeline = parseTimelineResponse(aiResponse);
-
-    return timeline;
+    timeline = parseTimelineResponse(aiResponse);
+    console.log('타임라인 파싱 완료');
 
   } catch (error) {
-    console.error('Error generating timeline:', error);
+    console.error('타임라인 생성 오류:', error);
     throw new Error('타임라인 생성 중 오류가 발생했습니다: ' + error.message);
+  }
+
+  // 스프레드시트 저장은 별도로 처리 (실패해도 타임라인은 반환)
+  try {
+    console.log('스프레드시트 저장 시작');
+    saveToSpreadsheet(projectData, aiResponse);
+    console.log('스프레드시트 저장 완료');
+  } catch (saveError) {
+    console.error('스프레드시트 저장 실패:', saveError);
+    // 저장 실패해도 타임라인은 정상 반환
+  }
+
+  return timeline;
+}
+
+function saveToSpreadsheet(projectData, aiResponse) {
+  try {
+    // 스프레드시트 URL에서 ID 추출
+    const spreadsheetUrl = 'https://docs.google.com/spreadsheets/d/1ra1J-------------....'; // 스프레드 시트 주소 넣기
+    const spreadsheetId = '1ra1JCj------------....'; // 본인 스프레드시트 ID.. 넣기
+
+    console.log('스프레드시트 ID:', spreadsheetId);
+
+    // 스프레드시트 열기
+    const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+    console.log('스프레드시트 열기 성공');
+
+    // 첫 번째 시트 가져오기
+    const sheet = spreadsheet.getSheets()[0];
+    console.log('시트 이름:', sheet.getName());
+
+    // 현재 데이터 행 수 확인
+    const lastRow = sheet.getLastRow();
+    console.log('현재 마지막 행:', lastRow);
+
+    // 헤더가 없으면 추가
+    if (lastRow === 0) {
+      console.log('헤더 추가 중...');
+      const headers = [
+        '기록일시',
+        '프로젝트명',
+        '프로젝트유형',
+        '예상기간',
+        '팀규모',
+        '우선순위',
+        '주요요구사항',
+        '제약사항',
+        'AI응답'
+      ];
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+
+      // 헤더 서식 지정
+      const headerRange = sheet.getRange(1, 1, 1, headers.length);
+      headerRange.setBackground('#4CAF50');
+      headerRange.setFontColor('white');
+      headerRange.setFontWeight('bold');
+    }
+
+    // 현재 시간
+    const now = new Date();
+    const timestamp = Utilities.formatDate(now, 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss');
+
+    // 새 데이터 행 추가
+    const newRow = [
+      timestamp,
+      projectData.projectName || '',
+      projectData.projectType || '',
+      projectData.duration || '',
+      projectData.teamSize || '',
+      projectData.priority || '',
+      projectData.requirements || '',
+      projectData.constraints || '',
+      aiResponse || ''
+    ];
+
+    console.log('새 행 데이터:', newRow);
+    sheet.appendRow(newRow);
+    console.log('데이터 추가 완료');
+
+    return true;
+
+  } catch (error) {
+    console.error('스프레드시트 저장 상세 오류:', error);
+    throw error;
   }
 }
 
@@ -72,7 +162,7 @@ function createPrompt(projectData) {
 
 function callGeminiAI(prompt) {
   const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-  const apiKey = '---------------------------------'; // 실제 API 키로 교체 필요
+  const apiKey = '-----------------'; // 본인 API key 넣기
 
   const payload = {
     contents: [{
@@ -103,7 +193,6 @@ function callGeminiAI(prompt) {
     const responseText = response.getContentText();
     const responseData = JSON.parse(responseText);
 
-    // Gemini API 응답 구조에서 텍스트 추출
     if (responseData.candidates &&
         responseData.candidates[0] &&
         responseData.candidates[0].content &&
@@ -123,8 +212,6 @@ function callGeminiAI(prompt) {
 function parseTimelineResponse(aiResponse) {
   try {
     const timeline = [];
-
-    // AI 응답을 줄 단위로 분할
     const lines = aiResponse.split('\n');
     let currentItem = {};
 
@@ -132,12 +219,9 @@ function parseTimelineResponse(aiResponse) {
       const line = lines[i].trim();
 
       if (line.startsWith('주차:')) {
-        // 이전 아이템이 있으면 배열에 추가
         if (currentItem.period) {
           timeline.push(currentItem);
         }
-
-        // 새로운 아이템 시작
         currentItem = {
           period: line.replace('주차:', '').trim(),
           title: '',
@@ -148,19 +232,16 @@ function parseTimelineResponse(aiResponse) {
       } else if (line.startsWith('내용:')) {
         currentItem.description = line.replace('내용:', '').trim();
       } else if (line && currentItem.period && line.length > 0) {
-        // 추가 설명이 있는 경우
         if (currentItem.description) {
           currentItem.description += ' ' + line;
         }
       }
     }
 
-    // 마지막 아이템 추가
     if (currentItem.period) {
       timeline.push(currentItem);
     }
 
-    // 파싱이 제대로 되지 않은 경우 대체 파싱 시도
     if (timeline.length === 0) {
       return parseAlternativeFormat(aiResponse);
     }
@@ -169,7 +250,6 @@ function parseTimelineResponse(aiResponse) {
 
   } catch (error) {
     console.error('타임라인 파싱 오류:', error);
-    // 파싱 실패 시 기본 구조로 반환
     return createDefaultTimeline(aiResponse);
   }
 }
@@ -195,7 +275,6 @@ function parseAlternativeFormat(aiResponse) {
 }
 
 function createDefaultTimeline(aiResponse) {
-  // AI 응답을 그대로 보여주는 기본 타임라인 생성
   const paragraphs = aiResponse.split('\n\n');
   const timeline = [];
 
@@ -212,24 +291,33 @@ function createDefaultTimeline(aiResponse) {
   return timeline;
 }
 
-// 테스트용 함수
-function testAPI() {
+// 테스트 함수들
+function testSpreadsheetSave() {
   const testData = {
     projectName: '테스트 프로젝트',
     projectType: '웹 개발',
-    duration: '8',
-    teamSize: '4-7명',
+    duration: '4',
+    teamSize: '3-5명',
     priority: '보통',
-    requirements: '사용자 관리, 데이터 처리',
-    constraints: '예산 제한'
+    requirements: '테스트 요구사항',
+    constraints: '테스트 제약사항'
   };
 
   try {
-    const result = generateProjectTimeline(testData);
-    console.log('테스트 결과:', result);
-    return result;
+    saveToSpreadsheet(testData, 'AI 테스트 응답입니다.');
+    return '테스트 성공!';
   } catch (error) {
-    console.error('테스트 오류:', error);
-    return error.message;
+    return '테스트 실패: ' + error.message;
+  }
+}
+
+function testSpreadsheetAccess() {
+  try {
+    const spreadsheetId = '1ra1JCjgB-hAkPsYiVo19YSukONObJUkTkEry0nmKHXA';
+    const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+    const sheets = spreadsheet.getSheets();
+    return `접근 성공! 시트 개수: ${sheets.length}, 첫 번째 시트: ${sheets[0].getName()}`;
+  } catch (error) {
+    return `접근 실패: ${error.message}`;
   }
 }

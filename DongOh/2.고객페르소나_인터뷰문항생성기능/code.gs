@@ -9,21 +9,112 @@ function include(filename) {
 }
 
 function generatePersonaAndQuestions(projectData) {
+  let aiResponse = '';
+  let parsed = {};
+
   try {
+    console.log('페르소나 생성 시작:', JSON.stringify(projectData));
+
     // 프롬프트 생성
     const prompt = createPersonaPrompt(projectData);
+    console.log('프롬프트 생성 완료');
 
     // 제미나이 API 호출
-    const aiResponse = callGeminiAI(prompt);
+    aiResponse = callGeminiAI(prompt);
+    console.log('AI 응답 받음');
 
     // 결과 파싱
-    const parsed = parsePersonaResponse(aiResponse);
-
-    return parsed;
+    parsed = parsePersonaResponse(aiResponse);
+    console.log('페르소나 파싱 완료');
 
   } catch (error) {
-    console.error('Error generating persona/questions:', error);
+    console.error('페르소나/인터뷰 생성 오류:', error);
     throw new Error('추천 생성 중 오류가 발생했습니다: ' + error.message);
+  }
+
+  // 스프레드시트 저장은 별도로 처리 (실패해도 결과는 반환)
+  try {
+    console.log('스프레드시트 저장 시작');
+    savePersonaToSpreadsheet(projectData, aiResponse);
+    console.log('스프레드시트 저장 완료');
+  } catch (saveError) {
+    console.error('스프레드시트 저장 실패:', saveError);
+    // 저장 실패해도 페르소나 결과는 정상 반환
+  }
+
+  return parsed;
+}
+
+// 스프레드시트에 데이터를 저장하는 함수
+function savePersonaToSpreadsheet(projectData, aiResponse) {
+  try {
+    // 고객 페르소나 전용 스프레드시트 ID
+    const spreadsheetId = '1E6-----------...'; // 본인 스프레드 시트 ID로 바꿔주기
+
+    // 스프레드시트와 시트 가져오기
+    const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+
+    // 첫 번째 시트 사용
+    const sheet = spreadsheet.getSheets()[0];
+
+    // 현재 데이터 행 수 확인
+    const lastRow = sheet.getLastRow();
+    console.log('페르소나 현재 마지막 행:', lastRow);
+
+    // 헤더가 없으면 추가
+    if (lastRow === 0) {
+      console.log('페르소나 헤더 추가 중...');
+      const headers = [
+        '기록일시',
+        '프로젝트명',
+        '프로젝트유형',
+        '주요기능요구사항',
+        '타겟시장고객',
+        '기타참고사항',
+        'AI응답'
+      ];
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+
+      // 헤더 서식 지정
+      const headerRange = sheet.getRange(1, 1, 1, headers.length);
+      headerRange.setBackground('#4CAF50');
+      headerRange.setFontColor('white');
+      headerRange.setFontWeight('bold');
+
+      // 열 너비 조정
+      sheet.setColumnWidth(1, 180); // 기록일시
+      sheet.setColumnWidth(2, 200); // 프로젝트명
+      sheet.setColumnWidth(3, 150); // 프로젝트유형
+      sheet.setColumnWidth(4, 300); // 주요기능요구사항
+      sheet.setColumnWidth(5, 200); // 타겟시장고객
+      sheet.setColumnWidth(6, 200); // 기타참고사항
+      sheet.setColumnWidth(7, 500); // AI응답
+    }
+
+    // 현재 시간
+    const now = new Date();
+    const timestamp = Utilities.formatDate(now, 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss');
+
+    // 새 데이터 행 추가
+    const newRow = [
+      timestamp,
+      projectData.projectName || '',
+      projectData.projectType || '',
+      projectData.requirements || '',
+      projectData.targetMarket || '미입력',
+      projectData.etc || '없음',
+      aiResponse || ''
+    ];
+
+    console.log('페르소나 새 행 데이터:', newRow);
+    sheet.appendRow(newRow);
+    console.log('페르소나 데이터 추가 완료');
+
+    return true;
+
+  } catch (error) {
+    console.error('페르소나 스프레드시트 저장 상세 오류:', error);
+    throw error;
   }
 }
 
@@ -48,7 +139,7 @@ function createPersonaPrompt(projectData) {
 
 function callGeminiAI(prompt) {
   const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-  const apiKey = '-------------------------------'; // 실제 API 키로 교체 필요
+  const apiKey = 'API 키 발급받아 넣기';
 
   const payload = {
     contents: [{
@@ -71,15 +162,14 @@ function callGeminiAI(prompt) {
   try {
     const response = UrlFetchApp.fetch(apiUrl, options);
     const responseCode = response.getResponseCode();
-    const responseText = response.getContentText();
 
     if (responseCode !== 200) {
-      throw new Error(`API 호출 실패: ${responseCode}, ${responseText}`);
+      throw new Error(`API 호출 실패: ${responseCode}, ${response.getContentText()}`);
     }
 
+    const responseText = response.getContentText();
     const responseData = JSON.parse(responseText);
 
-    // Gemini API 응답 구조에서 텍스트 추출
     if (responseData.candidates &&
         responseData.candidates[0] &&
         responseData.candidates[0].content &&
@@ -102,7 +192,6 @@ function parsePersonaResponse(aiResponse) {
     const personaBlocks = aiResponse.split(/페르소나\s*1\s*[:：]/i);
 
     if (personaBlocks.length < 2) {
-      // 파싱 실패 시 원문 반환
       console.log('페르소나 1을 찾을 수 없습니다');
       return { personas: [], raw: aiResponse };
     }
@@ -126,14 +215,12 @@ function parsePersonaResponse(aiResponse) {
 
       if (parts.length > 1) {
         const rawQuestions = parts[1].trim();
-        // 번호 + 질문 형태로 되어있을 경우
         questions = rawQuestions
-          .split(/(?:\d+\.|\n-|\n\*|\n•)/g) // 번호나 불릿으로 분리
+          .split(/(?:\d+\.|\n-|\n\*|\n•)/g)
           .map(q => q.trim())
-          .filter(q => q.length > 2); // 공백이나 너무 짧은 문자열 제거
+          .filter(q => q.length > 2);
       }
 
-      // 질문이 5개 미만이라면, 줄바꿈으로 분리 시도
       if (questions.length < 3 && parts.length > 1) {
         questions = parts[1].trim().split('\n')
           .map(q => q.trim())
@@ -143,7 +230,7 @@ function parsePersonaResponse(aiResponse) {
       return {
         title: title,
         description: description,
-        questions: questions.slice(0, 8) // 너무 많은 문항이 나오면 최대 8개로 제한
+        questions: questions.slice(0, 8)
       };
     }
 
@@ -157,5 +244,25 @@ function parsePersonaResponse(aiResponse) {
   } catch (error) {
     console.error('페르소나 파싱 오류:', error);
     return { personas: [], raw: aiResponse, error: error.toString() };
+  }
+}
+
+// 테스트용 함수
+function testPersonaAPI() {
+  const testData = {
+    projectName: '테스트 페르소나 프로젝트',
+    projectType: '모바일 앱',
+    requirements: '사용자 관리, 커뮤니티 기능',
+    targetMarket: '20-30대',
+    etc: '테스트 참고사항'
+  };
+
+  try {
+    const result = generatePersonaAndQuestions(testData);
+    console.log('페르소나 테스트 결과:', result);
+    return result;
+  } catch (error) {
+    console.error('페르소나 테스트 오류:', error);
+    return error.message;
   }
 }

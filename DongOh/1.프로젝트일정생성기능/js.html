@@ -5,6 +5,8 @@
         const formData = new FormData(this);
         const projectData = Object.fromEntries(formData.entries());
 
+        console.log('폼 데이터:', projectData);
+
         // UI 상태 변경
         document.getElementById('generateBtn').disabled = true;
         document.getElementById('loading').style.display = 'block';
@@ -23,39 +25,162 @@
     });
 
     function handleSuccess(timeline) {
+        console.log('타임라인 생성 성공:', timeline);
+
         document.getElementById('loading').style.display = 'none';
         document.getElementById('generateBtn').disabled = false;
 
         if (timeline && timeline.length > 0) {
             displayTimeline(timeline);
             document.getElementById('result').style.display = 'block';
+
+            // 성공 알림 메시지 표시
+            showSuccessMessage('✅ 타임라인이 생성되고 스프레드시트에 저장되었습니다!');
         } else {
             handleError('타임라인을 생성할 수 없습니다.');
         }
     }
 
     function handleError(error) {
+        console.error('오류 발생:', error);
+
         document.getElementById('loading').style.display = 'none';
         document.getElementById('generateBtn').disabled = false;
         document.getElementById('error').textContent = '오류가 발생했습니다: ' + error;
         document.getElementById('error').style.display = 'block';
+
+        // 오류 알림 메시지 표시
+        showErrorMessage('❌ 처리 중 오류가 발생했습니다: ' + error);
     }
 
     function displayTimeline(timeline) {
         const timelineContainer = document.getElementById('timeline');
         timelineContainer.innerHTML = '';
 
-        timeline.forEach(item => {
+        timeline.forEach((item, index) => {
             const timelineItem = document.createElement('div');
             timelineItem.className = 'timeline-item';
 
+            // 애니메이션 딜레이 추가
+            timelineItem.style.opacity = '0';
+            timelineItem.style.transform = 'translateY(20px)';
+
             timelineItem.innerHTML = `
-                <div class="timeline-date">${item.period || item.week || ''}</div>
-                <div class="timeline-title">${item.title || item.task || ''}</div>
-                <div class="timeline-desc">${item.description || item.details || ''}</div>
+                <div class="timeline-date">${item.period || item.week || `${index + 1}단계`}</div>
+                <div class="timeline-title">${item.title || item.task || '작업 항목'}</div>
+                <div class="timeline-desc">${item.description || item.details || '상세 내용'}</div>
             `;
 
             timelineContainer.appendChild(timelineItem);
+
+            // 순차적 애니메이션 효과
+            setTimeout(() => {
+                timelineItem.style.transition = 'all 0.5s ease';
+                timelineItem.style.opacity = '1';
+                timelineItem.style.transform = 'translateY(0)';
+            }, index * 150);
         });
     }
+
+    function showSuccessMessage(message) {
+        // 기존 메시지 제거
+        const existingMsg = document.querySelector('.success-message');
+        if (existingMsg) {
+            existingMsg.remove();
+        }
+
+        // 새 메시지 생성
+        const msgElement = document.createElement('div');
+        msgElement.className = 'success-message';
+        msgElement.textContent = message;
+
+        document.body.appendChild(msgElement);
+
+        // 애니메이션 시작
+        setTimeout(() => {
+            msgElement.classList.add('show');
+        }, 100);
+
+        // 5초 후 제거
+        setTimeout(() => {
+            msgElement.classList.remove('show');
+            setTimeout(() => {
+                if (msgElement.parentNode) {
+                    msgElement.remove();
+                }
+            }, 300);
+        }, 5000);
+    }
+
+    function showErrorMessage(message) {
+        // 기존 메시지 제거
+        const existingMsg = document.querySelector('.error-message');
+        if (existingMsg) {
+            existingMsg.remove();
+        }
+
+        // 새 메시지 생성
+        const msgElement = document.createElement('div');
+        msgElement.className = 'success-message error-message';
+        msgElement.style.background = '#f44336';
+        msgElement.textContent = message;
+
+        document.body.appendChild(msgElement);
+
+        // 애니메이션 시작
+        setTimeout(() => {
+            msgElement.classList.add('show');
+        }, 100);
+
+        // 7초 후 제거 (오류는 좀 더 오래 보여줌)
+        setTimeout(() => {
+            msgElement.classList.remove('show');
+            setTimeout(() => {
+                if (msgElement.parentNode) {
+                    msgElement.remove();
+                }
+            }, 300);
+        }, 7000);
+    }
+
+    // 폼 입력 시 실시간 유효성 검사
+    document.addEventListener('DOMContentLoaded', function() {
+        const requiredFields = document.querySelectorAll('input[required], select[required], textarea[required]');
+
+        requiredFields.forEach(field => {
+            field.addEventListener('blur', function() {
+                if (this.value.trim() === '') {
+                    this.style.borderColor = '#f44336';
+                } else {
+                    this.style.borderColor = '#00c73c';
+                }
+            });
+
+            field.addEventListener('input', function() {
+                if (this.value.trim() !== '') {
+                    this.style.borderColor = '#00c73c';
+                }
+            });
+        });
+
+        // 숫자 입력 필드 유효성 검사
+        const durationField = document.getElementById('duration');
+        if (durationField) {
+            durationField.addEventListener('input', function() {
+                const value = parseInt(this.value);
+                if (value < 1 || value > 52) {
+                    this.style.borderColor = '#f44336';
+                } else {
+                    this.style.borderColor = '#00c73c';
+                }
+            });
+        }
+    });
+
+    // 페이지 로드 시 환영 메시지
+    window.addEventListener('load', function() {
+        setTimeout(() => {
+            showSuccessMessage('🎯 프로젝트 일정 관리 도구에 오신 것을 환영합니다!');
+        }, 1000);
+    });
 </script>

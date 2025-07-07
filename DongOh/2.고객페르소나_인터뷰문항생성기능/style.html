@@ -132,7 +132,7 @@ body {
     margin: 0 auto 20px;
 }
 
-.loading-tip {
+.loading-sub {
     font-size: 0.9em;
     color: #666;
     margin-top: 10px;
@@ -158,12 +158,30 @@ body {
     font-size: 1.5em;
 }
 
+.save-notice {
+    background: #e8f5e8;
+    color: #2e7d32;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 0.95em;
+    border-left: 4px solid #4caf50;
+}
+
 .persona-block {
     margin-bottom: 32px;
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.06);
     padding: 24px 20px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s ease;
+}
+
+.persona-block.show {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .persona-title {
@@ -209,6 +227,27 @@ body {
     border-left: 4px solid #c62828;
 }
 
+.success-message {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #00c73c;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 199, 60, 0.3);
+    z-index: 1000;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+}
+
+.success-message.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
 .footer {
     text-align: center;
     padding: 20px;
@@ -231,6 +270,11 @@ body {
     }
     .header h1 {
         font-size: 1.5em;
+    }
+    .success-message {
+        right: 10px;
+        left: 10px;
+        bottom: 10px;
     }
 }
 </style>
