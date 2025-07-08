@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로젝트 일정 상세</title>
+    <?!= include('style'); ?>
+    <link rel="stylesheet" href="https://unpkg.com/frappe-gantt@0.6.1/dist/frappe-gantt.css">
+    <style>
+        /* 추가적인 타임라인 페이지 전용 스타일 */
+        body {
+            background: #f0f2f5; /* Light grey background for results page */
+        }
+        .container {
+            max-width: 1200px; /* Wider container for Gantt chart */
+            padding: 20px;
+            box-shadow: none; /* Remove main container shadow */
+            background: none;
+        }
+        .header {
+            background: none;
+            color: #333;
+            text-align: left;
+            padding: 20px 0;
+        }
+        .header h1 {
+            font-size: 2em;
+            color: #00a632;
+        }
+        .header p {
+            color: #666;
+        }
+        .timeline-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-top: 20px;
+            overflow-x: auto; /* Gantt chart can be wide */
+        }
+        .gantt-container {
+            /* Frappe Gantt 캔버스 스타일 */
+            width: 100%;
+            min-height: 400px;
+        }
+        #timelineDetails {
+            margin-top: 40px;
+        }
+        .week-detail {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+            padding: 25px;
+            border-left: 5px solid #00c73c;
+        }
+        .week-detail h4 {
+            color: #00a632;
+            font-size: 1.3em;
+            margin-bottom: 10px;
+        }
+        .week-detail p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        .week-detail ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .week-detail ul li {
+            background: #f8f9fa;
+            border-radius: 5px;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95em;
+            color: #444;
+        }
+        .week-detail ul li strong {
+            color: #00c73c;
+        }
+        .week-detail .task-status {
+            font-weight: 600;
+            color: #00c73c; /* Default for '계획' */
+        }
+        .week-detail .task-status.in-progress { color: #ff9800; } /* '진행 중' */
+        .week-detail .task-status.completed { color: #4CAF50; } /* '완료' */
+
+        .week-detail .risks-section {
+            margin-top: 15px;
+            border-top: 1px dashed #eee;
+            padding-top: 15px;
+        }
+        .week-detail .risks-section strong {
+            color: #e53935;
+            font-size: 0.9em;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .week-detail .risks-section p {
+            font-size: 0.9em;
+            color: #777;
+            margin-bottom: 5px;
+        }
+        .back-button {
+            display: inline-block;
+            background: #607d8b;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            text-decoration: none;
+            margin-top: 20px;
+            transition: background 0.3s ease;
+        }
+        .back-button:hover {
+            background: #455a64;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <a href="<?= ScriptApp.get  Url() ?>" class="back-button">← 다시 생성하기</a>
+        <h1>📋 AI 추천 프로젝트 타임라인</h1>
+        <p id="projectSummary"></p>
+    </div>
+
+    <div class="timeline-container">
+        <h3 style="color: #00a632; margin-bottom: 20px;">🗓️ 프로젝트 개요 (간트 차트)</h3>
+        <svg id="ganttChart" class="gantt-container"></svg>
+    </div>
+
+    <div id="timelineDetails" class="timeline-container">
+        <h3 style="color: #00a632; margin-bottom: 20px;">✨ 주차별 상세 일정</h3>
+        </div>
+</div>
+
+<script src="https://unpkg.com/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const aiResponseJson = localStorage.getItem('projectTimelineData');
+        const projectDataJson = localStorage.getItem('projectFormData');
+
+        if (!aiResponseJson || !projectDataJson) {
+            alert('이전 프로젝트 정보가 없습니다. 다시 생성해주세요.');
+            window.location.href = '<?= ScriptApp.get  Url() ?>'; // 메인 페이지로 리다이렉트
+            return;
+        }
+
+        try {
+            const timelineData = JSON.parse(aiResponseJson);
+            const projectData = JSON.parse(projectDataJson);
+
+            // 프로젝트 요약 표시
+            document.getElementById('projectSummary').textContent =
+                `${projectData.projectName} | ${projectData.projectType} | 예상 ${projectData.duration}주 | 팀 ${projectData.teamSize}`;
+
+            // 1. Frappe Gantt 차트 렌더링
+            const ganttTasks = timelineData.flatMap(week => {
+                const weekNum = parseInt(week.week.match(/\d+/)[0]);
+                const startDate = new Date(); // 현재 날짜 기준
+                startDate.setDate(startDate.getDate() + (weekNum - 1) * 7); // 주차 시작일 계산
+
+                // 주차별 'tasks' 배열이 있다면 이를 간트 차트의 세부 task로 변환
+                if (week.tasks && week.tasks.length > 0) {
+                    return week.tasks.map((task, idx) => {
+                        // 각 task의 duration을 처리 (예: "3일" -> 3)
+                        const durationDaysMatch = task.duration.match(/(\d+)/);
+                        const durationDays = durationDaysMatch ? parseInt(durationDaysMatch[1]) : 1;
+
+                        const taskStartDate = new Date(startDate);
+                        const taskEndDate = new Date(startDate);
+                        taskEndDate.setDate(taskEndDate.getDate() + durationDays -1); // duration이 1일이면 시작일과 동일
+
+                        // Frappe Gantt는 날짜 포맷 'YYYY-MM-DD'를 선호
+                        const formatGanttDate = (date) => date.toISOString().split('T')[0];
+
+                        return {
+                            id: `task-${weekNum}-${idx}`,
+                            name: `${week.week}: ${task.name}`,
+                            start: formatGanttDate(taskStartDate),
+                            end: formatGanttDate(taskEndDate),
+                            progress: task.status === '완료' ? 100 : (task.status === '진행 중' ? 50 : 0),
+                            custom_class: task.status === '완료' ? 'bar-completed' : (task.status === '진행 중' ? 'bar-in-progress' : 'bar-planned')
+                        };
+                    });
+                } else {
+                    // 주차에 세부 task가 없는 경우, 주차 자체를 하나의 task로 표현
+                    const endDate = new Date(startDate);
+                    endDate.setDate(endDate.getDate() + 6); // 1주 = 7일
+
+                    const formatGanttDate = (date) => date.toISOString().split('T')[0];
+
+                    return [{
+                        id: `week-${weekNum}`,
+                        name: `${week.week}: ${week.title}`,
+                        start: formatGanttDate(startDate),
+                        end: formatGanttDate(endDate),
+                        progress: 0,
+                        custom_class: 'bar-planned'
+                    }];
+                }
+            });
+
+            const gantt = new Gantt("#ganttChart", ganttTasks, {
+                header_height: 50,
+                column_width: 30,
+                step: 7,
+                view_modes: ['Day', 'Week', 'Month'],
+                bar_height: 20,
+                bar_padding: 6,
+                padding: 18,
+                font_size: 14,
+                language: 'ko', // 한글 지원 (Frappe Gantt 자체에서 지원하는 경우)
+                on_click: function (task) {
+                    console.log(task); // 클릭 시 디버깅 정보
+                },
+                on_date_change: function(task, start, end) {
+                    console.log(task, start, end); // 날짜 변경 시 (읽기 전용이므로 여기서는 기능 없음)
+                },
+                on_progress_change: function(task, progress) {
+                    console.log(task, progress); // 진행률 변경 시
+                },
+                on_view_change: function(mode) {
+                    console.log(mode); // 뷰 모드 변경 시
+                },
+                // Frappe Gantt 커스텀 클래스에 대한 스타일링은 style.html에서 추가
+                custom_popup_html: function(task) {
+                    // 팝업 내용 커스터마이징
+                    return `
+                        <div class="details-container">
+                            <h5>${task.name}</h5>
+                            <p>시작: ${task.start}</p>
+                            <p>종료: ${task.end}</p>
+                            <p>진행률: ${task.progress}%</p>
+                            ${task.custom_class === 'bar-completed' ? '<p style="color: green;">✅ 완료</p>' : ''}
+                            ${task.custom_class === 'bar-in-progress' ? '<p style="color: orange;">⏳ 진행 중</p>' : ''}
+                        </div>
+                    `;
+                }
+            });
+
+            // 초기 뷰 모드를 'Week'로 설정
+            gantt.change_view_mode('Week');
+
+
+            // 2. 주차별 상세 일정 렌더링
+            const timelineDetailsContainer = document.getElementById('timelineDetails');
+            timelineDetailsContainer.innerHTML = ''; // 기존 내용 초기화
+
+            timelineData.forEach(week => {
+                const weekDetailDiv = document.createElement('div');
+                weekDetailDiv.className = 'week-detail';
+
+                let tasksHtml = '';
+                if (week.tasks && week.tasks.length > 0) {
+                    tasksHtml = `
+                        <h5>세부 작업:</h5>
+                        <ul>
+                            ${week.tasks.map(task => `
+                                <li>
+                                    <span>${task.name}</span>
+                                    <span>
+                                        <strong class="task-duration">${task.duration}</strong>
+                                        <span class="task-status ${task.status === '진행 중' ? 'in-progress' : (task.status === '완료' ? 'completed' : '')}">${task.status}</span>
+                                    </span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    `;
+                } else {
+                    tasksHtml = `<p>세부 작업이 명시되지 않았습니다.</p>`;
+                }
+
+                let risksHtml = '';
+                if (week.risks && week.risks.length > 0) {
+                    risksHtml = `
+                        <div class="risks-section">
+                            <h5>🚨 위험 요소 및 대응 방안:</h5>
+                            ${week.risks.map(risk => `
+                                <p><strong>${risk.name}:</strong> ${risk.mitigation}</p>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                weekDetailDiv.innerHTML = `
+                    <h4>${week.week}: ${week.title}</h4>
+                    <p>${week.description}</p>
+                    ${tasksHtml}
+                    ${risksHtml}
+                `;
+                timelineDetailsContainer.appendChild(weekDetailDiv);
+            });
+
+        } catch (error) {
+            console.error('타임라인 데이터 파싱 또는 렌더링 오류:', error);
+            alert('타임라인 데이터를 불러오거나 표시하는 데 오류가 발생했습니다. 다시 시도해주세요.');
+            window.location.href = '<?= ScriptApp.get  Url() ?>';
+        }
+    });
+</script>
+</body>
+</html>
