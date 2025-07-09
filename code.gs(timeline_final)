@@ -1,0 +1,182 @@
+function doGet(e) {
+  const page = e.parameter.page || 'main';
+
+  return HtmlService.createTemplateFromFile('index').evaluate()
+    .setTitle('프로젝트 일정 관리')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+function generateProjectTimeline(projectData) {
+  let aiResponse = '';
+  let timeline = [];
+
+  try {
+    const prompt = createPrompt(projectData);
+    aiResponse = callGeminiAI(prompt);
+    timeline = parseTimelineResponse(aiResponse);
+
+    // 📥 스프레드시트에 원본 데이터 저장
+    saveToSpreadsheet(projectData, aiResponse);
+
+    // 📊 Gantt 형식 시각화용 타임라인 저장
+    saveGanttToSheet(timeline);
+
+    return timeline;
+
+  } catch (error) {
+    console.error('타임라인 생성 오류:', error);
+    throw new Error('타임라인 생성 중 오류가 발생했습니다: ' + error.message);
+  }
+}
+
+function saveToSpreadsheet(projectData, aiResponse) {
+  const spreadsheetId = '여기에_당신의_스프레드시트_ID'; // 예: '1ra1JCjgB-hAkPsYiVo19YSukONObJUkTkEry0nmKHXA'
+  const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+  const sheet = spreadsheet.getSheets()[0];
+
+  const now = new Date();
+  const timestamp = Utilities.formatDate(now, 'Asia/Seoul', 'yyyy-MM-dd HH:mm:ss');
+
+  if (sheet.getLastRow() === 0) {
+    const headers = ['기록일시', '프로젝트명', '프로젝트유형', '예상기간', '팀규모', '우선순위', '주요요구사항', '제약사항', 'AI응답'];
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  }
+
+  const newRow = [
+    timestamp,
+    projectData.projectName || '',
+    projectData.projectType || '',
+    projectData.duration || '',
+    projectData.teamSize || '',
+    projectData.priority || '',
+    projectData.requirements || '',
+    projectData.constraints || '',
+    aiResponse || ''
+  ];
+
+  sheet.appendRow(newRow);
+}
+
+function saveGanttToSheet(timeline) {
+  const spreadsheetId = '여기에_당신의_스프레드시트_ID'; // 같은 ID로 유지
+  const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+  let sheet = spreadsheet.getSheetByName('TimelineView');
+
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet('TimelineView');
+  } else {
+    sheet.clear();
+  }
+
+  const weeks = timeline.map(item => item.period);
+  const header = ['항목명', ...weeks];
+  sheet.getRange(1, 1, 1, header.length).setValues([header]);
+
+  timeline.forEach((item, index) => {
+    const row = index + 2;
+    sheet.getRange(row, 1).setValue(item.title);
+    const col = index + 2;
+    sheet.getRange(row, col).setBackground('#00c73c');
+  });
+
+  sheet.setFrozenRows(1);
+  sheet.setFrozenColumns(1);
+  sheet.setColumnWidths(1, weeks.length + 1, 100);
+  sheet.getRange(1, 1, timeline.length + 1, weeks.length + 1).setHorizontalAlignment('center');
+}
+
+function createPrompt(projectData) {
+  return `
+다음 프로젝트 정보를 바탕으로 구체적이고 실무적인 프로젝트 일정을 주차별로 작성해주세요.
+
+**프로젝트 정보:**
+- 프로젝트명: ${projectData.projectName}
+- 프로젝트 유형: ${projectData.projectType}
+- 예상 기간: ${projectData.duration}주
+- 팀 규모: ${projectData.teamSize}
+- 우선순위: ${projectData.priority}
+- 주요 요구사항: ${projectData.requirements}
+- 제약사항: ${projectData.constraints || '없음'}
+
+**요청사항:**
+1. ${projectData.duration}주 동안의 주차별 상세 일정을 작성해주세요
+2. 각 주차별로 구체적인 작업 내용과 목표를 제시해주세요
+3. 팀 규모와 우선순위를 고려한 현실적인 일정을 제안해주세요
+4. 위험 요소와 대응 방안도 포함해주세요
+
+**응답 형식:** (반드시 이 형식을 따라주세요)
+주차: 1주차
+제목: [작업 제목]
+내용: [구체적인 작업 내용과 목표, 산출물]
+
+주차: 2주차
+제목: [작업 제목]
+내용: [구체적인 작업 내용과 목표, 산출물]
+
+...이런 식으로 작성해주세요.
+`;
+}
+
+function callGeminiAI(prompt) {
+  const apiKey = '여기에_당신의_API_KEY';
+  const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro:generateContent';
+
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }]
+  };
+
+  const options = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-goog-api-key': apiKey
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  const response = UrlFetchApp.fetch(apiUrl, options);
+  const responseData = JSON.parse(response.getContentText());
+
+  if (responseData.candidates?.[0]?.content?.parts?.[0]?.text) {
+    return responseData.candidates[0].content.parts[0].text;
+  } else {
+    throw new Error('Gemini 응답 형식이 예상과 다릅니다');
+  }
+}
+
+function parseTimelineResponse(aiResponse) {
+  const timeline = [];
+  const lines = aiResponse.split('\n');
+  let currentItem = {};
+
+  for (let line of lines) {
+    line = line.trim();
+    if (line.startsWith('주차:')) {
+      if (currentItem.period) timeline.push(currentItem);
+      currentItem = { period: line.replace('주차:', '').trim(), title: '', description: '' };
+    } else if (line.startsWith('제목:')) {
+      currentItem.title = line.replace('제목:', '').trim();
+    } else if (line.startsWith('내용:')) {
+      currentItem.description = line.replace('내용:', '').trim();
+    } else if (line && currentItem.description) {
+      currentItem.description += ' ' + line;
+    }
+  }
+
+  if (currentItem.period) timeline.push(currentItem);
+  return timeline.length ? timeline : createDefaultTimeline(aiResponse);
+}
+
+function createDefaultTimeline(aiResponse) {
+  const paragraphs = aiResponse.split('\n\n');
+  return paragraphs.map((text, i) => ({
+    period: `${i + 1}단계`,
+    title: `단계 ${i + 1}`,
+    description: text.trim()
+  }));
+}
